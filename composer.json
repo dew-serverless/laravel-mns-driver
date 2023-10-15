@@ -1,0 +1,32 @@
+{
+    "name": "dew/laravel-mns-driver",
+    "description": "Alibaba Cloud MNS driver for Laravel queue.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Li Zhineng",
+            "email": "im@zhineng.li"
+        }
+    ],
+    "require": {
+        "php": "^8.0",
+        "illuminate/contracts": "^10.0",
+        "illuminate/queue": "^10.0",
+        "aliyun/aliyun-mns-php-sdk": "^1.1"
+    },
+    "require-dev": {
+        "pestphp/pest": "^2.23",
+        "mockery/mockery": "^1.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Dew\\Mns\\": "src/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}
