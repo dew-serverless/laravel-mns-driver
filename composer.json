@@ -1,5 +1,5 @@
 {
-    "name": "dew/laravel-mns-driver",
+    "name": "dew-serverless/laravel-mns-driver",
     "description": "Alibaba Cloud MNS driver for Laravel queue.",
     "type": "library",
     "license": "MIT",
