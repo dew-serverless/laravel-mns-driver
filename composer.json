@@ -22,7 +22,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Dew\\Mns\\": "src/"
+            "Dew\\MnsDriver\\": "src/"
         }
     },
     "config": {
@@ -33,7 +33,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Dew\\Mns\\MnsServiceProvider"
+                "Dew\\MnsDriver\\MnsServiceProvider"
             ]
         }
     }

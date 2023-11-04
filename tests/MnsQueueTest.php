@@ -5,8 +5,8 @@ use AliyunMNS\Exception\MessageNotExistException;
 use AliyunMNS\Model\QueueAttributes;
 use AliyunMNS\Responses\ReceiveMessageResponse;
 use AliyunMNS\Responses\SendMessageResponse;
-use Dew\Mns\MnsJob;
-use Dew\Mns\MnsQueue;
+use Dew\MnsDriver\MnsJob;
+use Dew\MnsDriver\MnsQueue;
 use Illuminate\Container\Container;
 use Illuminate\Support\Carbon;
 

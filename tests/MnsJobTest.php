@@ -2,7 +2,7 @@
 
 use AliyunMNS\Client;
 use AliyunMNS\Responses\ReceiveMessageResponse;
-use Dew\Mns\MnsJob;
+use Dew\MnsDriver\MnsJob;
 use Illuminate\Container\Container;
 
 beforeEach(function () {

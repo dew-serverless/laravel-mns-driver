@@ -1,6 +1,6 @@
 <?php
 
-namespace Dew\Mns;
+namespace Dew\MnsDriver;
 
 use Illuminate\Support\ServiceProvider;
 
