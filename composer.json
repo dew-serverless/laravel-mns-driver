@@ -26,7 +26,8 @@
         }
     },
     "scripts": {
-        "format": "pint"
+        "format": "pint",
+        "test:style": "pint --test"
     },
     "config": {
         "allow-plugins": {
