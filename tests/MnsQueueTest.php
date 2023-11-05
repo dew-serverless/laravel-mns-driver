@@ -11,6 +11,7 @@ use Dew\MnsDriver\MnsQueue;
 use Illuminate\Container\Container;
 use Illuminate\Support\Carbon;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\StreamInterface;
 
 beforeEach(function () {
     $this->client = new MnsClient('http://1234567891011.mns.us-west-1.aliyuncs.com', 'key', 'secret');
@@ -28,9 +29,11 @@ beforeEach(function () {
     $this->mockedInactiveMessages = 4;
     $this->mockedDelayMessages = 5;
 
+    $this->mockedStream = Mockery::mock(StreamInterface::class);
+    $this->mockedStream->allows()->__toString()->andReturns('<response></response>');
     $this->mockedResponse = Mockery::mock(ResponseInterface::class);
     $this->mockedResponse->allows()->getheaderLine('content-type')->andReturns('text/xml');
-    $this->mockedResponse->allows()->getBody()->andReturns('<response></response>');
+    $this->mockedResponse->allows()->getBody()->andReturns($this->mockedStream);
 
     $this->mockedGetQueueAttributesResult = new GetQueueAttributesResult($this->mockedResponse, tap(Mockery::mock(XmlEncoder::class), function ($mock) {
         $mock->expects()->decode('<response></response>')->andReturns([

@@ -9,6 +9,7 @@ use Dew\Mns\Versions\V20150606\Results\Result;
 use Dew\MnsDriver\MnsJob;
 use Illuminate\Container\Container;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\StreamInterface;
 
 beforeEach(function () {
     $this->client = new MnsClient('http://1234567891011.mns.us-west-1.aliyuncs.com', 'key', 'secret');
@@ -22,9 +23,11 @@ beforeEach(function () {
     $this->mockedMessageId = '5F290C926D472878-2-14D9529****-200000001';
     $this->mockedReceiptHandle = '1-ODU4OTkzNDU5My0xNDM1MTk3NjAwLTItNg==';
 
+    $this->mockedStream = Mockery::mock(StreamInterface::class);
+    $this->mockedStream->allows()->__toString()->andReturns('<response></response>');
     $this->mockedResponse = Mockery::mock(ResponseInterface::class);
     $this->mockedResponse->allows()->getHeaderLine('content-type')->andReturns('text/xml');
-    $this->mockedResponse->allows()->getBody()->andReturns('<response></response>');
+    $this->mockedResponse->allows()->getBody()->andReturns($this->mockedStream);
     $this->mockedXml = Mockery::mock(XmlEncoder::class);
     $this->mockedXml->allows()->decode('<response></response>')->andReturns([
         'MessageId' => $this->mockedMessageId,
