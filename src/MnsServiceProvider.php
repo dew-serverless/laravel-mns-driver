@@ -7,11 +7,9 @@ use Illuminate\Support\ServiceProvider;
 class MnsServiceProvider extends ServiceProvider
 {
     /**
-     * Register any application services.
-     *
-     * @return void
+     * Bootstrap any application services.
      */
-    public function register()
+    public function boot(): void
     {
         $this->registerConnector();
     }
