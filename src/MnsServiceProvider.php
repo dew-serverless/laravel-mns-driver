@@ -21,8 +21,6 @@ class MnsServiceProvider extends ServiceProvider
      */
     protected function registerConnector(): void
     {
-        $this->app->make('queue')->addConnector('mns', function () {
-            return new MnsConnector;
-        });
+        $this->app->make('queue')->addConnector('mns', fn () => new MnsConnector);
     }
 }

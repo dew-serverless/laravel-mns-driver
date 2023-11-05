@@ -11,32 +11,18 @@ use Illuminate\Queue\Jobs\Job;
 class MnsJob extends Job implements JobContract
 {
     /**
-     * The MNS queue instance.
-     *
-     * @var \Dew\Mns\Versions\V20150606\Queue
-     */
-    protected $mns;
-
-    /**
-     * The MNS job instance.
-     */
-    protected ReceiveMessageResult $job;
-
-    /**
      * Create a new job instance.
      *
      * @param  \Dew\Mns\Versions\V20150606\Queue  $mns
      */
     public function __construct(
         Container $container,
-        $mns,
-        ReceiveMessageResult $job,
+        protected $mns,
+        protected ReceiveMessageResult $job,
         string $connectionName,
         string $queue
     ) {
         $this->container = $container;
-        $this->mns = $mns;
-        $this->job = $job;
         $this->connectionName = $connectionName;
         $this->queue = $queue;
     }

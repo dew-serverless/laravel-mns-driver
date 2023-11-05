@@ -18,7 +18,8 @@
     "require-dev": {
         "pestphp/pest": "^2.23",
         "mockery/mockery": "^1.6",
-        "laravel/pint": "^1.13"
+        "laravel/pint": "^1.13",
+        "rector/rector": "^0.18.6"
     },
     "autoload": {
         "psr-4": {
@@ -27,10 +28,13 @@
     },
     "scripts": {
         "format": "pint",
+        "refactor": "rector",
         "test:style": "pint --test",
+        "test:static": "rector --dry-run",
         "test:cases": "pest",
         "test": [
             "@test:style",
+            "@test:static",
             "@test:cases"
         ]
     },
