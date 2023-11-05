@@ -28,10 +28,13 @@
     },
     "scripts": {
         "format": "pint",
+        "refactor": "rector",
         "test:style": "pint --test",
+        "test:static": "rector --dry-run",
         "test:cases": "pest",
         "test": [
             "@test:style",
+            "@test:static",
             "@test:cases"
         ]
     },
