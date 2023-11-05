@@ -17,12 +17,17 @@
     },
     "require-dev": {
         "pestphp/pest": "^2.23",
-        "mockery/mockery": "^1.6"
+        "mockery/mockery": "^1.6",
+        "laravel/pint": "^1.13"
     },
     "autoload": {
         "psr-4": {
             "Dew\\MnsDriver\\": "src/"
         }
+    },
+    "scripts": {
+        "format": "pint",
+        "test:style": "pint --test"
     },
     "config": {
         "allow-plugins": {

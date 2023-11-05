@@ -1,12 +1,12 @@
 <?php
 
-use Dew\MnsDriver\MnsJob;
 use Dew\Mns\Contracts\XmlEncoder;
 use Dew\Mns\MnsClient;
 use Dew\Mns\Versions\V20150606\Queue;
 use Dew\Mns\Versions\V20150606\Results\ChangeMessageVisibilityResult;
 use Dew\Mns\Versions\V20150606\Results\ReceiveMessageResult;
 use Dew\Mns\Versions\V20150606\Results\Result;
+use Dew\MnsDriver\MnsJob;
 use Illuminate\Container\Container;
 use Psr\Http\Message\ResponseInterface;
 
