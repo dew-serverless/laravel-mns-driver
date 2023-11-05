@@ -25,6 +25,9 @@
             "Dew\\MnsDriver\\": "src/"
         }
     },
+    "scripts": {
+        "format": "pint"
+    },
     "config": {
         "allow-plugins": {
             "pestphp/pest-plugin": true
