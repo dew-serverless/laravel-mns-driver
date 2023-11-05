@@ -60,7 +60,6 @@ class MnsQueue extends Queue implements QueueContract
      *
      * @param  string  $payload
      * @param  string|null  $queue
-     * @param  array  $options
      * @return mixed
      */
     public function pushRaw($payload, $queue = null, array $options = [])
@@ -136,7 +135,7 @@ class MnsQueue extends Queue implements QueueContract
     /**
      * Get the queue or return the default.
      */
-    public function getQueue(?string $queue = null): string
+    public function getQueue(string $queue = null): string
     {
         return $queue ?: $this->default;
     }

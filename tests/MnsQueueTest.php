@@ -1,13 +1,13 @@
 <?php
 
-use Dew\MnsDriver\MnsJob;
-use Dew\MnsDriver\MnsQueue;
 use Dew\Mns\Contracts\XmlEncoder;
 use Dew\Mns\MnsClient;
 use Dew\Mns\Versions\V20150606\Queue;
 use Dew\Mns\Versions\V20150606\Results\GetQueueAttributesResult;
 use Dew\Mns\Versions\V20150606\Results\ReceiveMessageResult;
 use Dew\Mns\Versions\V20150606\Results\SendMessageResult;
+use Dew\MnsDriver\MnsJob;
+use Dew\MnsDriver\MnsQueue;
 use Illuminate\Container\Container;
 use Illuminate\Support\Carbon;
 use Psr\Http\Message\ResponseInterface;
