@@ -27,7 +27,12 @@
     },
     "scripts": {
         "format": "pint",
-        "test:style": "pint --test"
+        "test:style": "pint --test",
+        "test:cases": "pest",
+        "test": [
+            "@test:style",
+            "@test:cases"
+        ]
     },
     "config": {
         "allow-plugins": {
