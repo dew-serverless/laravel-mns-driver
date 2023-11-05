@@ -2,9 +2,8 @@
 
 namespace Dew\MnsDriver;
 
-use AliyunMNS\Client;
-use AliyunMNS\Queue;
-use AliyunMNS\Responses\ReceiveMessageResponse;
+use Dew\Mns\Versions\V20150606\Queue;
+use Dew\Mns\Versions\V20150606\Results\ReceiveMessageResult;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Queue\Job as JobContract;
 use Illuminate\Queue\Jobs\Job;
@@ -12,22 +11,26 @@ use Illuminate\Queue\Jobs\Job;
 class MnsJob extends Job implements JobContract
 {
     /**
-     * The MNS client instance.
+     * The MNS queue instance.
+     *
+     * @var \Dew\Mns\Versions\V20150606\Queue
      */
-    protected Client $mns;
+    protected $mns;
 
     /**
      * The MNS job instance.
      */
-    protected ReceiveMessageResponse $job;
+    protected ReceiveMessageResult $job;
 
     /**
      * Create a new job instance.
+     *
+     * @param  \Dew\Mns\Versions\V20150606\Queue  $mns
      */
     public function __construct(
         Container $container,
-        Client $mns,
-        ReceiveMessageResponse $job,
+        $mns,
+        ReceiveMessageResult $job,
         string $connectionName,
         string $queue
     ) {
@@ -48,8 +51,9 @@ class MnsJob extends Job implements JobContract
     {
         parent::release($delay);
 
-        $this->mns->getQueueRef($this->queue)
-            ->changeMessageVisibility($this->job->getReceiptHandle(), $delay);
+        $this->mns->changeMessageVisibility(
+            $this->queue, $this->job->receiptHandle(), $delay
+        );
     }
 
     /**
@@ -61,8 +65,7 @@ class MnsJob extends Job implements JobContract
     {
         parent::delete();
 
-        $this->mns->getQueueRef($this->queue)
-            ->deleteMessage($this->job->getReceiptHandle());
+        $this->mns->deleteMessage($this->queue, $this->job->receiptHandle());
     }
 
     /**
@@ -72,7 +75,7 @@ class MnsJob extends Job implements JobContract
      */
     public function attempts()
     {
-        return (int) $this->job->getDequeueCount();
+        return (int) $this->job->dequeueCount();
     }
 
     /**
@@ -82,7 +85,7 @@ class MnsJob extends Job implements JobContract
      */
     public function getJobId()
     {
-        return $this->job->getMessageId();
+        return $this->job->messageId();
     }
 
     /**
@@ -92,13 +95,13 @@ class MnsJob extends Job implements JobContract
      */
     public function getRawBody()
     {
-        return $this->job->getMessageBody();
+        return $this->job->messageBody();
     }
 
     /**
-     * Get the underlying MNS client instance.
+     * Get the underlying MNS queue instance.
      */
-    public function getMns(): Client
+    public function getMns(): Queue
     {
         return $this->mns;
     }
@@ -106,7 +109,7 @@ class MnsJob extends Job implements JobContract
     /**
      * Get the underlying raw MNS job.
      */
-    public function getMnsJob(): ReceiveMessageResponse
+    public function getMnsJob(): ReceiveMessageResult
     {
         return $this->job;
     }

@@ -2,7 +2,7 @@
 
 namespace Dew\MnsDriver;
 
-use AliyunMNS\Client;
+use Dew\Mns\MnsClient;
 use Illuminate\Queue\Connectors\ConnectorInterface;
 
 class MnsConnector implements ConnectorInterface
@@ -16,12 +16,10 @@ class MnsConnector implements ConnectorInterface
     public function connect(array $config)
     {
         return new MnsQueue(
-            new Client(
+            new MnsClient(
                 $config['endpoint'],
                 $config['key'],
-                $config['secret'],
-                $config['token'] ?? null,
-                $config['client'] ?? null
+                $config['secret']
             ),
             $config['queue']
         );

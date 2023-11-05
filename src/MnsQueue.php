@@ -2,9 +2,6 @@
 
 namespace Dew\MnsDriver;
 
-use AliyunMNS\Client;
-use AliyunMNS\Exception\MessageNotExistException;
-use AliyunMNS\Requests\SendMessageRequest;
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\Queue;
 
@@ -12,9 +9,11 @@ class MnsQueue extends Queue implements QueueContract
 {
     /**
      * Create a new MNS queue instance.
+     *
+     * @param  \Dew\Mns\Versions\V20150606\Queue  $mns
      */
     public function __construct(
-        protected Client $mns,
+        protected $mns,
         protected string $default
     ) {
         //
@@ -28,13 +27,11 @@ class MnsQueue extends Queue implements QueueContract
      */
     public function size($queue = null)
     {
-        $attributes = $this->mns->getQueueRef($this->getQueue($queue))
-            ->getAttribute()
-            ->getQueueAttributes();
+        $attributes = $this->mns->getQueueAttributes($this->getQueue($queue));
 
-        return $attributes->getActiveMessages()
-            + $attributes->getInactiveMessages()
-            + $attributes->getDelayMessages();
+        return $attributes->activeMessages()
+            + $attributes->inactiveMessages()
+            + $attributes->delayMessages();
     }
 
     /**
@@ -68,9 +65,9 @@ class MnsQueue extends Queue implements QueueContract
      */
     public function pushRaw($payload, $queue = null, array $options = [])
     {
-        return $this->mns->getQueueRef($this->getQueue($queue))
-            ->sendMessage(new SendMessageRequest($payload))
-            ->getMessageId();
+        return $this->mns->sendMessage($this->getQueue($queue), array_merge([
+            'MessageBody' => $payload,
+        ], $options))->messageId();
     }
 
     /**
@@ -90,9 +87,9 @@ class MnsQueue extends Queue implements QueueContract
             $queue,
             $delay,
             function ($payload, $queue, $delay) {
-                return $this->mns->getQueueRef($this->getQueue($queue))
-                    ->sendMessage(new SendMessageRequest($payload, $this->secondsUntil($delay)))
-                    ->getMessageId();
+                return $this->pushRaw($payload, $queue, [
+                    'DelaySeconds' => $this->secondsUntil($delay),
+                ]);
             }
         );
     }
@@ -124,15 +121,14 @@ class MnsQueue extends Queue implements QueueContract
      */
     public function pop($queue = null)
     {
-        try {
-            $response = $this->mns->getQueueRef($queue = $this->getQueue($queue))
-                ->receiveMessage();
-        } catch (MessageNotExistException $e) {
+        $result = $this->mns->receiveMessage($queue = $this->getQueue($queue));
+
+        if ($result->failed()) {
             return null;
         }
 
         return new MnsJob(
-            $this->container, $this->mns, $response,
+            $this->container, $this->mns, $result,
             $this->connectionName, $queue
         );
     }
