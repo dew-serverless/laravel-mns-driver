@@ -13,7 +13,6 @@
         "php": "^8.0",
         "illuminate/contracts": "^10.0",
         "illuminate/queue": "^10.0",
-        "aliyun/aliyun-mns-php-sdk": "^1.1",
         "dew-serverless/mns": "^1.0"
     },
     "require-dev": {
