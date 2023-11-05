@@ -26,7 +26,7 @@ jobs:
           tools: composer:v2
           coverage: none
 
-      - name: Install PHP dependencies
+      - name: Install Dependencies
         run: composer update --${{ matrix.dependency-version }} --no-interaction --no-progress --ansi
 
       - name: Run Test Cases
