@@ -66,6 +66,7 @@ class MnsQueue extends Queue implements QueueContract
      *
      * @param  string  $payload
      * @param  string|null  $queue
+     * @param  array<mixed>  $options
      * @return mixed
      */
     public function pushRaw($payload, $queue = null, array $options = [])
@@ -102,7 +103,7 @@ class MnsQueue extends Queue implements QueueContract
     /**
      * Push an array of jobs onto the queue.
      *
-     * @param  array  $jobs
+     * @param  array<mixed>  $jobs
      * @param  mixed  $data
      * @param  string|null  $queue
      * @return void
