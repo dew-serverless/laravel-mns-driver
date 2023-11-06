@@ -143,6 +143,10 @@ class MnsQueue extends Queue implements QueueContract
      */
     public function getQueue(string $queue = null): string
     {
-        return $queue ?: $this->default;
+        if (is_string($queue)) {
+            return $queue;
+        }
+
+        return $this->default;
     }
 }
