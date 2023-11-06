@@ -2,10 +2,13 @@
 
 namespace Dew\MnsDriver;
 
+use Dew\Mns\Versions\V20150606\Models\Message;
+use Dew\Mns\Versions\V20150606\Results\BatchReceiveMessageResult;
+use Illuminate\Contracts\Queue\ClearableQueue;
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\Queue;
 
-class MnsQueue extends Queue implements QueueContract
+class MnsQueue extends Queue implements ClearableQueue, QueueContract
 {
     /**
      * Create a new MNS queue instance.
@@ -152,6 +155,82 @@ class MnsQueue extends Queue implements QueueContract
             $this->container, $this->mns, $result,
             $this->connectionName, $queue
         );
+    }
+
+    /**
+     * Delete all of the jobs from the queue.
+     *
+     * @param  string  $queue
+     * @return int
+     */
+    public function clear($queue)
+    {
+        $deleted = 0;
+
+        $queue = $this->getQueue($queue);
+
+        while (true) {
+            $result = $this->retrieveMessages($queue);
+
+            if (! $result instanceof BatchReceiveMessageResult) {
+                break;
+            }
+
+            /** @var \Dew\Mns\Versions\V20150606\Models\Message[] */
+            $messages = $result->messages();
+
+            $receipts = array_filter(
+                array_map(fn (Message $message) => $message->receiptHandle(), $messages)
+            );
+
+            $deleted += $this->deleteMessages($queue, $receipts);
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Retrieve the messages from queue.
+     */
+    protected function retrieveMessages(string $queue): BatchReceiveMessageResult|bool
+    {
+        $result = $this->mns->batchReceiveMessage($queue, ['numOfMessages' => '16', 'waitseconds' => '30']);
+
+        if ($result->failed() && $result->errorCode() === 'MessageNotExist') {
+            return false;
+        }
+
+        if ($result->failed()) {
+            throw new MnsQueueException(sprintf('Retrieve the messages with error [%s] %s',
+                $result->errorCode(), $result->errorMessage()
+            ));
+        }
+
+        return $result;
+    }
+
+    /**
+     * Delete the messages from queue.
+     *
+     * @param  array<int, string>  $receipts
+     */
+    protected function deleteMessages(string $queue, array $receipts): int
+    {
+        $result = $this->mns->batchDeleteMessage($queue, $receipts);
+
+        if ($result->failed()) {
+            throw new MnsQueueException(sprintf('Delete the messages with error [%s] %s',
+                $result->errorCode(), $result->errorMessage()
+            ));
+        }
+
+        $errors = $result->errors();
+
+        if (is_array($errors) && $errors !== []) {
+            return count($receipts) - count($errors);
+        }
+
+        return count($receipts);
     }
 
     /**

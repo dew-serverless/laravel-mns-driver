@@ -3,6 +3,8 @@
 use Dew\Mns\Contracts\XmlEncoder;
 use Dew\Mns\MnsClient;
 use Dew\Mns\Versions\V20150606\Queue;
+use Dew\Mns\Versions\V20150606\Results\BatchDeleteMessageResult;
+use Dew\Mns\Versions\V20150606\Results\BatchReceiveMessageResult;
 use Dew\Mns\Versions\V20150606\Results\GetQueueAttributesResult;
 use Dew\Mns\Versions\V20150606\Results\ReceiveMessageResult;
 use Dew\Mns\Versions\V20150606\Results\SendMessageResult;
@@ -32,8 +34,17 @@ beforeEach(function () {
     $this->mockedStream = Mockery::mock(StreamInterface::class);
     $this->mockedStream->allows()->__toString()->andReturns('<response></response>');
     $this->mockedResponse = Mockery::mock(ResponseInterface::class);
-    $this->mockedResponse->allows()->getheaderLine('content-type')->andReturns('text/xml');
+    $this->mockedResponse->allows()->getHeaderLine('content-type')->andReturns('text/xml');
     $this->mockedResponse->allows()->getBody()->andReturns($this->mockedStream);
+
+    $this->mockedNoContentResponse = Mockery::mock(ResponseInterface::class);
+    $this->mockedNoContentResponse->allows()->getHeaderLine('content-type')->andReturns('');
+    $this->mockedNoContentResponse->allows()->getStatusCode()->andReturns(204);
+
+    $this->mockedNotFoundResponse = Mockery::mock(ResponseInterface::class);
+    $this->mockedNotFoundResponse->allows()->getHeaderLine('content-type')->andReturns('text/xml');
+    $this->mockedNotFoundResponse->allows()->getStatusCode()->andReturn(404);
+    $this->mockedNotFoundResponse->allows()->getBody()->andReturns($this->mockedStream);
 
     $this->mockedGetQueueAttributesResult = new GetQueueAttributesResult($this->mockedResponse, tap(Mockery::mock(XmlEncoder::class), function ($mock) {
         $mock->expects()->decode('<response></response>')->andReturns([
@@ -66,6 +77,23 @@ beforeEach(function () {
             'Message' => 'Message not exist.',
         ]);
     }));
+
+    $this->mockedBatchReceiveMessageResult = new BatchReceiveMessageResult($this->mockedResponse, tap(Mockery::mock(XmlEncoder::class), function ($mock) {
+        $mock->expects()->decode('<response></response>')->andReturns([
+            'Message' => [
+                ['ReceiptHandle' => $this->mockedReceiptHandle],
+            ],
+        ]);
+    }));
+
+    $this->mockedEmptyBatchReceiveMessageResult = new BatchReceiveMessageResult($this->mockedNotFoundResponse, tap(Mockery::mock(XmlEncoder::class), function ($mock) {
+        $mock->expects()->decode('<response></response>')->andReturns([
+            'Code' => 'MessageNotExist',
+            'Message' => 'Message not exist.',
+        ]);
+    }));
+
+    $this->mockedBatchDeleteMessageResult = new BatchDeleteMessageResult($this->mockedNoContentResponse, Mockery::mock(XmlEncoder::class));
 });
 
 test('queue size includes active, inactive and delayed messages', function () {
@@ -125,4 +153,22 @@ test('pop job off of empty mns', function () {
     $this->mns->expects()->receiveMessage($this->queueName)->andReturns($this->mockedMessageNotExistsResult);
     $job = $queue->pop($this->queueName);
     expect($job)->toBe(null);
+});
+
+test('clear queue', function () {
+    $queue = new MnsQueue($this->mns, $this->queueName);
+    $this->mockedResponse->expects()->getStatusCode()->twice()->andReturns(200);
+    $this->mns->expects()->batchReceiveMessage($this->queueName, ['numOfMessages' => '16', 'waitseconds' => '30'])->twice()->andReturns(
+        $this->mockedBatchReceiveMessageResult, $this->mockedEmptyBatchReceiveMessageResult
+    );
+    $this->mns->expects()->batchDeleteMessage($this->queueName, [$this->mockedReceiptHandle])->andReturns($this->mockedBatchDeleteMessageResult);
+    $deleted = $queue->clear($this->queueName);
+    expect($deleted)->toBe(1);
+});
+
+test('clear empty queue', function () {
+    $queue = new MnsQueue($this->mns, $this->queueName);
+    $this->mns->expects()->batchReceiveMessage($this->queueName, ['numOfMessages' => '16', 'waitseconds' => '30'])->andReturns($this->mockedEmptyBatchReceiveMessageResult);
+    $deleted = $queue->clear($this->queueName);
+    expect($deleted)->toBe(0);
 });
