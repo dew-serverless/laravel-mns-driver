@@ -37,9 +37,15 @@ class MnsJob extends Job implements JobContract
     {
         parent::release($delay);
 
-        $this->mns->changeMessageVisibility(
-            $this->queue, $this->job->receiptHandle(), $delay
+        $result = $this->mns->changeMessageVisibility(
+            $this->queue, (string) $this->job->receiptHandle(), $delay
         );
+
+        if ($result->failed()) {
+            throw new MnsQueueException(sprintf('Release the job with error [%s] %s',
+                $result->errorCode(), $result->errorMessage()
+            ));
+        }
     }
 
     /**
@@ -51,7 +57,13 @@ class MnsJob extends Job implements JobContract
     {
         parent::delete();
 
-        $this->mns->deleteMessage($this->queue, $this->job->receiptHandle());
+        $result = $this->mns->deleteMessage($this->queue, (string) $this->job->receiptHandle());
+
+        if ($result->failed()) {
+            throw new MnsQueueException(sprintf('Delete the job with error [%s] %s',
+                $result->errorCode(), $result->errorMessage()
+            ));
+        }
     }
 
     /**
@@ -71,7 +83,7 @@ class MnsJob extends Job implements JobContract
      */
     public function getJobId()
     {
-        return $this->job->messageId();
+        return (string) $this->job->messageId();
     }
 
     /**
@@ -81,7 +93,7 @@ class MnsJob extends Job implements JobContract
      */
     public function getRawBody()
     {
-        return $this->job->messageBody();
+        return (string) $this->job->messageBody();
     }
 
     /**

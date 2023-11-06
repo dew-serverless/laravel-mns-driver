@@ -2,6 +2,7 @@
 
 namespace Dew\MnsDriver;
 
+use Illuminate\Queue\QueueManager;
 use Illuminate\Support\ServiceProvider;
 
 class MnsServiceProvider extends ServiceProvider
@@ -19,6 +20,10 @@ class MnsServiceProvider extends ServiceProvider
      */
     protected function registerConnector(): void
     {
-        $this->app->make('queue')->addConnector('mns', fn () => new MnsConnector);
+        $manager = $this->app->make('queue');
+
+        if ($manager instanceof QueueManager) {
+            $manager->addConnector('mns', fn () => new MnsConnector);
+        }
     }
 }

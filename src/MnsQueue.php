@@ -27,11 +27,17 @@ class MnsQueue extends Queue implements QueueContract
      */
     public function size($queue = null)
     {
-        $attributes = $this->mns->getQueueAttributes($this->getQueue($queue));
+        $result = $this->mns->getQueueAttributes($this->getQueue($queue));
 
-        return $attributes->activeMessages()
-            + $attributes->inactiveMessages()
-            + $attributes->delayMessages();
+        if ($result->failed()) {
+            throw new MnsQueueException(sprintf('Get the size of the queue with error [%s] %s',
+                $result->errorCode(), $result->errorMessage()
+            ));
+        }
+
+        return (int) $result->activeMessages()
+            + (int) $result->inactiveMessages()
+            + (int) $result->delayMessages();
     }
 
     /**
@@ -44,9 +50,11 @@ class MnsQueue extends Queue implements QueueContract
      */
     public function push($job, $data = '', $queue = null)
     {
+        $queue = $this->getQueue($queue);
+
         return $this->enqueueUsing(
             $job,
-            $this->createPayload($job, $queue ?: $this->default, $data),
+            $this->createPayload($job, $queue, $data),
             $queue,
             null,
             fn ($payload, $queue) => $this->pushRaw($payload, $queue)
@@ -58,13 +66,22 @@ class MnsQueue extends Queue implements QueueContract
      *
      * @param  string  $payload
      * @param  string|null  $queue
+     * @param  array<mixed>  $options
      * @return mixed
      */
     public function pushRaw($payload, $queue = null, array $options = [])
     {
-        return $this->mns->sendMessage($this->getQueue($queue), array_merge([
+        $result = $this->mns->sendMessage($this->getQueue($queue), array_merge([
             'MessageBody' => $payload,
-        ], $options))->messageId();
+        ], $options));
+
+        if ($result->failed()) {
+            throw new MnsQueueException(sprintf('Push job to queue with error [%s] %s',
+                $result->errorCode(), $result->errorMessage()
+            ));
+        }
+
+        return $result->messageId();
     }
 
     /**
@@ -78,9 +95,11 @@ class MnsQueue extends Queue implements QueueContract
      */
     public function later($delay, $job, $data = '', $queue = null)
     {
+        $queue = $this->getQueue($queue);
+
         return $this->enqueueUsing(
             $job,
-            $this->createPayload($job, $queue ?: $this->default, $data),
+            $this->createPayload($job, $queue, $data),
             $queue,
             $delay,
             fn ($payload, $queue, $delay) => $this->pushRaw($payload, $queue, [
@@ -92,7 +111,7 @@ class MnsQueue extends Queue implements QueueContract
     /**
      * Push an array of jobs onto the queue.
      *
-     * @param  array  $jobs
+     * @param  array<mixed>  $jobs
      * @param  mixed  $data
      * @param  string|null  $queue
      * @return void
@@ -100,9 +119,10 @@ class MnsQueue extends Queue implements QueueContract
     public function bulk($jobs, $data = '', $queue = null)
     {
         foreach ((array) $jobs as $job) {
-            if (isset($job->delay)) {
+            if (is_object($job) && isset($job->delay)) {
                 $this->later($job->delay, $job, $data, $queue);
             } else {
+                /** @var object|string $job */
                 $this->push($job, $data, $queue);
             }
         }
@@ -118,8 +138,14 @@ class MnsQueue extends Queue implements QueueContract
     {
         $result = $this->mns->receiveMessage($queue = $this->getQueue($queue));
 
-        if ($result->failed()) {
+        if ($result->failed() && $result->errorCode() === 'MessageNotExist') {
             return null;
+        }
+
+        if ($result->failed()) {
+            throw new MnsQueueException(sprintf('Pop job off of queue with error [%s] %s',
+                $result->errorCode(), $result->errorMessage()
+            ));
         }
 
         return new MnsJob(
@@ -133,6 +159,10 @@ class MnsQueue extends Queue implements QueueContract
      */
     public function getQueue(string $queue = null): string
     {
-        return $queue ?: $this->default;
+        if (is_string($queue)) {
+            return $queue;
+        }
+
+        return $this->default;
     }
 }
