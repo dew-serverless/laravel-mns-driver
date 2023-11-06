@@ -111,9 +111,10 @@ class MnsQueue extends Queue implements QueueContract
     public function bulk($jobs, $data = '', $queue = null)
     {
         foreach ((array) $jobs as $job) {
-            if (isset($job->delay)) {
+            if (is_object($job) && isset($job->delay)) {
                 $this->later($job->delay, $job, $data, $queue);
             } else {
+                /** @var object|string $job */
                 $this->push($job, $data, $queue);
             }
         }
