@@ -59,9 +59,17 @@ beforeEach(function () {
             'ReceiptHandle' => $this->mockedReceiptHandle,
         ]);
     }));
+
+    $this->mockedMessageNotExistsResult = new ReceiveMessageResult($this->mockedResponse, tap(Mockery::mock(XmlEncoder::class), function ($mock) {
+        $mock->expects()->decode('<response></response>')->andReturns([
+            'Code' => 'MessageNotExist',
+            'Message' => 'Message not exist.',
+        ]);
+    }));
 });
 
 test('queue size includes active, inactive and delayed messages', function () {
+    $this->mockedResponse->expects()->getStatusCode()->andReturns(200);
     $this->mns->expects()->getQueueAttributes($this->queueName)->andReturns($this->mockedGetQueueAttributesResult);
     $queue = new MnsQueue($this->mns, $this->queueName);
     expect($queue->size())->toBeInt()->toBe($this->mockedActiveMessages + $this->mockedInactiveMessages + $this->mockedDelayMessages);
@@ -71,6 +79,7 @@ test('push job to mns', function () {
     $queue = $this->getMockBuilder(MnsQueue::class)->onlyMethods(['createPayload'])->setConstructorArgs([$this->mns, $this->queueName])->getMock();
     $queue->setContainer($container = Mockery::spy(Container::class));
     $queue->expects($this->once())->method('createPayload')->with($this->mockedJob, $this->queueName, $this->mockedData)->willReturn($this->mockedPayload);
+    $this->mockedResponse->expects()->getStatusCode()->andReturns(201);
     $this->mns->expects()->sendMessage($this->queueName, ['MessageBody' => $this->mockedPayload])->andReturns($this->mockedSendMessageResult);
     $id = $queue->push($this->mockedJob, $this->mockedData, $this->queueName);
     expect($id)->toBe($this->mockedMessageId);
@@ -81,6 +90,7 @@ test('push delayed job to mns', function () {
     $queue = $this->getMockBuilder(MnsQueue::class)->onlyMethods(['createPayload'])->setConstructorArgs([$this->mns, $this->queueName])->getMock();
     $queue->setContainer($container = Mockery::spy(Container::class));
     $queue->expects($this->once())->method('createPayload')->with($this->mockedJob, $this->queueName, $this->mockedData)->willReturn($this->mockedPayload);
+    $this->mockedResponse->expects()->getStatusCode()->andReturns(201);
     $this->mns->expects()->sendMessage($this->queueName, ['MessageBody' => $this->mockedPayload, 'DelaySeconds' => $this->mockedDelay])->andReturns($this->mockedSendMessageResult);
     $id = $queue->later($this->mockedDelay, $this->mockedJob, $this->mockedData, $this->queueName);
     expect($id)->toBe($this->mockedMessageId);
@@ -92,6 +102,7 @@ test('push delayed job with datetime to mns', function () {
     $queue = $this->getMockBuilder(MnsQueue::class)->onlyMethods(['createPayload'])->setConstructorArgs([$this->mns, $this->queueName])->getMock();
     $queue->setContainer($container = Mockery::spy(Container::class));
     $queue->expects($this->once())->method('createPayload')->with($this->mockedJob, $this->queueName, $this->mockedData)->willReturn($this->mockedPayload);
+    $this->mockedResponse->expects()->getStatusCode()->andReturns(201);
     $this->mns->expects()->sendMessage($this->queueName, ['MessageBody' => $this->mockedPayload, 'DelaySeconds' => $this->mockedDelay])->andReturns($this->mockedSendMessageResult);
     $id = $queue->later($now->addSeconds($this->mockedDelay), $this->mockedJob, $this->mockedData, $this->queueName);
     expect($id)->toBe($this->mockedMessageId);
@@ -102,7 +113,7 @@ test('pop job off of mns', function () {
     $queue = new MnsQueue($this->mns, $this->queueName);
     $queue->setContainer(Mockery::mock(Container::class));
     $queue->setConnectionName('mns');
-    $this->mockedResponse->expects()->getStatusCode()->andReturns(201);
+    $this->mockedResponse->expects()->getStatusCode()->twice()->andReturns(200);
     $this->mns->expects()->receiveMessage($this->queueName)->andReturns($this->mockedReceiveMessageResult);
     $job = $queue->pop($this->queueName);
     expect($job)->toBeInstanceOf(MnsJob::class);
@@ -111,7 +122,7 @@ test('pop job off of mns', function () {
 test('pop job off of empty mns', function () {
     $queue = new MnsQueue($this->mns, $this->queueName);
     $this->mockedResponse->expects()->getStatusCode()->andReturns(404);
-    $this->mns->expects()->receiveMessage($this->queueName)->andReturns($this->mockedReceiveMessageResult);
+    $this->mns->expects()->receiveMessage($this->queueName)->andReturns($this->mockedMessageNotExistsResult);
     $job = $queue->pop($this->queueName);
     expect($job)->toBe(null);
 });
