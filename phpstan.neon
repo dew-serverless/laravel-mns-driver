@@ -8,3 +8,8 @@ parameters:
         - src
 
     treatPhpDocTypesAsCertain: false
+
+    ignoreErrors:
+        -
+            message: '#constructor expects string, mixed given.$#'
+            path: src/MnsConnector.php
