@@ -50,9 +50,11 @@ class MnsQueue extends Queue implements QueueContract
      */
     public function push($job, $data = '', $queue = null)
     {
+        $queue = $this->getQueue($queue);
+
         return $this->enqueueUsing(
             $job,
-            $this->createPayload($job, $queue ?: $this->default, $data),
+            $this->createPayload($job, $queue, $data),
             $queue,
             null,
             fn ($payload, $queue) => $this->pushRaw($payload, $queue)
@@ -84,9 +86,11 @@ class MnsQueue extends Queue implements QueueContract
      */
     public function later($delay, $job, $data = '', $queue = null)
     {
+        $queue = $this->getQueue($queue);
+
         return $this->enqueueUsing(
             $job,
-            $this->createPayload($job, $queue ?: $this->default, $data),
+            $this->createPayload($job, $queue, $data),
             $queue,
             $delay,
             fn ($payload, $queue, $delay) => $this->pushRaw($payload, $queue, [
