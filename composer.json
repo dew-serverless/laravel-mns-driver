@@ -19,7 +19,9 @@
         "pestphp/pest": "^2.23",
         "mockery/mockery": "^1.6",
         "laravel/pint": "^1.13",
-        "rector/rector": "^0.18.6"
+        "rector/rector": "^0.18.6",
+        "phpstan/phpstan": "^1.10",
+        "phpstan/phpstan-strict-rules": "^1.5"
     },
     "autoload": {
         "psr-4": {
@@ -30,11 +32,13 @@
         "format": "pint",
         "refactor": "rector",
         "test:style": "pint --test",
-        "test:static": "rector --dry-run",
+        "test:static": "phpstan analyse",
+        "test:refactor": "rector --dry-run",
         "test:cases": "pest",
         "test": [
             "@test:style",
             "@test:static",
+            "@test:refactor",
             "@test:cases"
         ]
     },

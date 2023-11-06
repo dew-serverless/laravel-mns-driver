@@ -24,3 +24,6 @@ jobs:
 
       - name: Check Static
         run: composer test:static
+
+      - name: Check Refactor
+        run: composer test:refactor
