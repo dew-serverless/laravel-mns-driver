@@ -30,7 +30,7 @@ class MnsQueue extends Queue implements QueueContract
         $result = $this->mns->getQueueAttributes($this->getQueue($queue));
 
         if ($result->failed()) {
-            throw new MnsQueueException(sprintf('Get the size of the queue with error [%s] %s.',
+            throw new MnsQueueException(sprintf('Get the size of the queue with error [%s] %s',
                 $result->errorCode(), $result->errorMessage()
             ));
         }
@@ -71,9 +71,17 @@ class MnsQueue extends Queue implements QueueContract
      */
     public function pushRaw($payload, $queue = null, array $options = [])
     {
-        return $this->mns->sendMessage($this->getQueue($queue), array_merge([
+        $result = $this->mns->sendMessage($this->getQueue($queue), array_merge([
             'MessageBody' => $payload,
-        ], $options))->messageId();
+        ], $options));
+
+        if ($result->failed()) {
+            throw new MnsQueueException(sprintf('Push job to queue with error [%s] %s',
+                $result->errorCode(), $result->errorMessage()
+            ));
+        }
+
+        return $result->messageId();
     }
 
     /**
@@ -130,8 +138,14 @@ class MnsQueue extends Queue implements QueueContract
     {
         $result = $this->mns->receiveMessage($queue = $this->getQueue($queue));
 
-        if ($result->failed()) {
+        if ($result->failed() && $result->errorCode() === 'MessageNotExist') {
             return null;
+        }
+
+        if ($result->failed()) {
+            throw new MnsQueueException(sprintf('Pop job off of queue with error [%s] %s',
+                $result->errorCode(), $result->errorMessage()
+            ));
         }
 
         return new MnsJob(
