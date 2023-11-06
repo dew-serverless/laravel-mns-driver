@@ -27,11 +27,17 @@ class MnsQueue extends Queue implements QueueContract
      */
     public function size($queue = null)
     {
-        $attributes = $this->mns->getQueueAttributes($this->getQueue($queue));
+        $result = $this->mns->getQueueAttributes($this->getQueue($queue));
 
-        return $attributes->activeMessages()
-            + $attributes->inactiveMessages()
-            + $attributes->delayMessages();
+        if ($result->failed()) {
+            throw new MnsQueueException(sprintf('Get the size of the queue with error [%s] %s.',
+                $result->errorCode(), $result->errorMessage()
+            ));
+        }
+
+        return (int) $result->activeMessages()
+            + (int) $result->inactiveMessages()
+            + (int) $result->delayMessages();
     }
 
     /**
