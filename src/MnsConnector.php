@@ -3,6 +3,7 @@
 namespace Dew\MnsDriver;
 
 use Dew\Mns\MnsClient;
+use Dew\Mns\Versions\V20150606\Queue;
 use Illuminate\Queue\Connectors\ConnectorInterface;
 
 class MnsConnector implements ConnectorInterface
@@ -14,9 +15,8 @@ class MnsConnector implements ConnectorInterface
      */
     public function connect(array $config)
     {
-        return new MnsQueue(
-            new MnsClient($config['endpoint'], $config['key'], $config['secret']),
-            $config['queue']
-        );
+        $mns = new MnsClient($config['endpoint'], $config['key'], $config['secret']);
+
+        return new MnsQueue(new Queue($mns), $config['queue']);
     }
 }
