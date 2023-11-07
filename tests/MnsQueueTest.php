@@ -92,7 +92,7 @@ beforeEach(function () {
         ]);
     }));
 
-    $this->mockedEmptyBatchReceiveMessageResult = new BatchReceiveMessageResult($this->mockedNotFoundResponse, tap(Mockery::mock(XmlEncoder::class), function ($mock) {
+    $this->mockedBatchMessageNotFoundResult = new BatchReceiveMessageResult($this->mockedNotFoundResponse, tap(Mockery::mock(XmlEncoder::class), function ($mock) {
         $mock->expects()->decode('<response></response>')->andReturns([
             'Code' => 'MessageNotExist',
             'Message' => 'Message not exist.',
@@ -157,9 +157,7 @@ test('pop job off of empty mns', function () {
 
 test('clear queue', function () {
     $queue = new MnsQueue($this->mns, $this->queueName);
-    $this->mns->expects()->batchReceiveMessage($this->queueName, ['numOfMessages' => '16', 'waitseconds' => '30'])->twice()->andReturns(
-        $this->mockedBatchReceiveMessageResult, $this->mockedEmptyBatchReceiveMessageResult
-    );
+    $this->mns->allows()->batchReceiveMessage($this->queueName, ['numOfMessages' => '16', 'waitseconds' => '30'])->andReturns($this->mockedBatchReceiveMessageResult, $this->mockedBatchMessageNotFoundResult);
     $this->mns->expects()->batchDeleteMessage($this->queueName, [$this->mockedReceiptHandle])->andReturns($this->mockedBatchDeleteMessageResult);
     $deleted = $queue->clear($this->queueName);
     expect($deleted)->toBe(1);
@@ -167,7 +165,7 @@ test('clear queue', function () {
 
 test('clear empty queue', function () {
     $queue = new MnsQueue($this->mns, $this->queueName);
-    $this->mns->expects()->batchReceiveMessage($this->queueName, ['numOfMessages' => '16', 'waitseconds' => '30'])->andReturns($this->mockedEmptyBatchReceiveMessageResult);
+    $this->mns->expects()->batchReceiveMessage($this->queueName, ['numOfMessages' => '16', 'waitseconds' => '30'])->andReturns($this->mockedBatchMessageNotFoundResult);
     $deleted = $queue->clear($this->queueName);
     expect($deleted)->toBe(0);
 });
