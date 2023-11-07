@@ -26,33 +26,41 @@ beforeEach(function () {
     $this->mockedStream = Mockery::mock(StreamInterface::class);
     $this->mockedStream->allows()->__toString()->andReturns('<response></response>');
 
-    $this->mockedResponse = Mockery::mock(ResponseInterface::class);
-    $this->mockedResponse->allows()->getHeaderLine('content-type')->andReturns('text/xml');
-    $this->mockedResponse->allows()->getBody()->andReturns($this->mockedStream);
+    $this->mockedOkResponse = Mockery::mock(ResponseInterface::class);
+    $this->mockedOkResponse->allows()->getStatusCode()->andReturns(200);
+    $this->mockedOkResponse->allows()->getHeaderLine('content-type')->andReturns('text/xml');
+    $this->mockedOkResponse->allows()->getBody()->andReturns($this->mockedStream);
 
     $this->mockedNoContentResponse = Mockery::mock(ResponseInterface::class);
-    $this->mockedNoContentResponse->allows()->getHeaderLine('content-type')->andReturns('');
     $this->mockedNoContentResponse->allows()->getStatusCode()->andReturns(204);
+    $this->mockedNoContentResponse->allows()->getHeaderLine('content-type')->andReturns('');
 
-    $this->mockedXml = Mockery::mock(XmlEncoder::class);
-    $this->mockedXml->allows()->decode('<response></response>')->andReturns([
-        'MessageId' => $this->mockedMessageId,
-        'ReceiptHandle' => $this->mockedReceiptHandle,
-        'MessageBody' => $this->mockedPayload,
-        'MessageBodyMD5' => md5($this->mockedPayload),
-    ]);
+    $this->mockedReceiveMessageResult = new ReceiveMessageResult($this->mockedOkResponse, tap(Mockery::mock(XmlEncoder::class), function ($mock) {
+        $mock->expects()->decode('<response></response>')->andReturns([
+            'MessageId' => $this->mockedMessageId,
+            'ReceiptHandle' => $this->mockedReceiptHandle,
+            'MessageBody' => $this->mockedPayload,
+            'MessageBodyMD5' => md5($this->mockedPayload),
+        ]);
+    }));
 
-    $this->mockedReceiveMessageResult = new ReceiveMessageResult($this->mockedResponse, $this->mockedXml);
+    $this->mockedChangeMessageVisibilityResult = new ChangeMessageVisibilityResult($this->mockedOkResponse, tap(Mockery::mock(XmlEncoder::class), function ($mock) {
+        $mock->expects()->decode('<response></response>')->andReturns([
+            'ReceiptHandle' => $this->mockedReceiptHandle,
+        ]);
+    }));
+
+    $this->mockedDeleteMessageResult = new Result($this->mockedNoContentResponse, Mockery::mock(XmlEncoder::class));
 });
 
 test('release releases the job onto mns', function () {
-    $this->mns->expects()->changeMessageVisibility($this->queueName, $this->mockedReceiptHandle, 60)->andReturns(new ChangeMessageVisibilityResult($this->mockedNoContentResponse, Mockery::mock(XmlEncoder::class)));
+    $this->mns->expects()->changeMessageVisibility($this->queueName, $this->mockedReceiptHandle, 60)->andReturns($this->mockedChangeMessageVisibilityResult);
     $job = new MnsJob($this->mockedContainer, $this->mns, $this->mockedReceiveMessageResult, 'mns', $this->queueName);
     $job->release(60);
 });
 
 test('delete removes the job from mns', function () {
-    $this->mns->expects()->deleteMessage($this->queueName, $this->mockedReceiptHandle)->andReturns(new Result($this->mockedNoContentResponse, Mockery::mock(XmlEncoder::class)));
+    $this->mns->expects()->deleteMessage($this->queueName, $this->mockedReceiptHandle)->andReturns($this->mockedDeleteMessageResult);
     $job = new MnsJob($this->mockedContainer, $this->mns, $this->mockedReceiveMessageResult, 'mns', $this->queueName);
     $job->delete();
 });
