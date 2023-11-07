@@ -39,17 +39,17 @@ beforeEach(function () {
     $this->mockedOkResponse->allows()->getBody()->andReturns($this->mockedStream);
 
     $this->mockedCreatedResponse = Mockery::mock(ResponseInterface::class);
-    $this->mockedCreatedResponse->allows()->getHeaderLine('content-type')->andReturns('text/xml');
     $this->mockedCreatedResponse->allows()->getStatusCode()->andReturns(201);
+    $this->mockedCreatedResponse->allows()->getHeaderLine('content-type')->andReturns('text/xml');
     $this->mockedCreatedResponse->allows()->getBody()->andReturns($this->mockedStream);
 
     $this->mockedNoContentResponse = Mockery::mock(ResponseInterface::class);
-    $this->mockedNoContentResponse->allows()->getHeaderLine('content-type')->andReturns('');
     $this->mockedNoContentResponse->allows()->getStatusCode()->andReturns(204);
+    $this->mockedNoContentResponse->allows()->getHeaderLine('content-type')->andReturns('');
 
     $this->mockedNotFoundResponse = Mockery::mock(ResponseInterface::class);
-    $this->mockedNotFoundResponse->allows()->getHeaderLine('content-type')->andReturns('text/xml');
     $this->mockedNotFoundResponse->allows()->getStatusCode()->andReturn(404);
+    $this->mockedNotFoundResponse->allows()->getHeaderLine('content-type')->andReturns('text/xml');
     $this->mockedNotFoundResponse->allows()->getBody()->andReturns($this->mockedStream);
 
     $this->mockedGetQueueAttributesResult = new GetQueueAttributesResult($this->mockedOkResponse, tap(Mockery::mock(XmlEncoder::class), function ($mock) {
