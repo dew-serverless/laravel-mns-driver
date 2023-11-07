@@ -18,6 +18,22 @@ class MnsConnector implements ConnectorInterface
     {
         $mns = new MnsClient($config['endpoint'], $config['key'], $config['secret']);
 
+        $mns->configure($this->withDefaultConfiguration($config['http'] ?? []));
+
         return new MnsQueue(new Queue($mns), $config['queue']);
+    }
+
+    /**
+     * Build a configuration with default one.
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>
+     */
+    protected function withDefaultConfiguration(array $config = []): array
+    {
+        // timeout: receiving messages could take up to 30 seconds.
+        return array_merge([
+            'timeout' => 60.0,
+        ], $config);
     }
 }
