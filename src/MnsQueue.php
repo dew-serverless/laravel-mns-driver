@@ -194,7 +194,10 @@ class MnsQueue extends Queue implements ClearableQueue, QueueContract
      */
     protected function retrieveMessages(string $queue): BatchReceiveMessageResult|bool
     {
-        $result = $this->mns->batchReceiveMessage($queue, ['numOfMessages' => '16', 'waitseconds' => '30']);
+        $result = $this->mns->batchReceiveMessage($queue, [
+            'numOfMessages' => '16',  // max messages we could get at a time
+            'waitseconds' => '30',    // max timeout
+        ]);
 
         if ($result->failed() && $result->errorCode() === 'MessageNotExist') {
             return false;
