@@ -247,4 +247,14 @@ class MnsQueue extends Queue implements ClearableQueue, QueueContract
 
         return $this->default;
     }
+
+    /**
+     * The underlying MNS queue.
+     *
+     * @return \Dew\Mns\Versions\V20150606\Queue
+     */
+    public function getMns()
+    {
+        return $this->mns;
+    }
 }
