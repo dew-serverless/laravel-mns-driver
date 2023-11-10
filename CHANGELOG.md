@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2023-11-10
+
+### Added
+
+- Exposes MNS queue instance by @lizhineng in https://github.com/dew-serverless/laravel-mns-driver/pull/11
+
 ## [2.0.0] - 2023-11-07
 
 ### Added
@@ -33,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First release.
 - Hopes the package could help you easily integrating ACS MNS with your Laravel Queue.
 
-[unreleased]: https://github.com/dew-serverless/laravel-mns-driver/compare/v1.0.0...HEAD
+[unreleased]: https://github.com/dew-serverless/laravel-mns-driver/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/dew-serverless/laravel-mns-driver/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/dew-serverless/laravel-mns-driver/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/dew-serverless/laravel-mns-driver/releases/tag/v1.0.0
