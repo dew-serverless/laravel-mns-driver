@@ -239,7 +239,7 @@ class MnsQueue extends Queue implements ClearableQueue, QueueContract
     /**
      * Get the queue or return the default.
      */
-    public function getQueue(string $queue = null): string
+    public function getQueue(?string $queue = null): string
     {
         if (is_string($queue)) {
             return $queue;
