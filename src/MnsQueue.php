@@ -60,7 +60,7 @@ class MnsQueue extends Queue implements ClearableQueue, QueueContract
             $this->createPayload($job, $queue, $data),
             $queue,
             null,
-            fn ($payload, $queue) => $this->pushRaw($payload, $queue)
+            fn (string $payload, string $queue) => $this->pushRaw($payload, $queue)
         );
     }
 
@@ -74,9 +74,10 @@ class MnsQueue extends Queue implements ClearableQueue, QueueContract
      */
     public function pushRaw($payload, $queue = null, array $options = [])
     {
-        $result = $this->mns->sendMessage($this->getQueue($queue), array_merge([
-            'MessageBody' => $payload,
-        ], $options));
+        /** @var array<string, mixed> */
+        $opts = ['MessageBody' => $payload, ...$options];
+
+        $result = $this->mns->sendMessage($this->getQueue($queue), $opts);
 
         if ($result->failed()) {
             throw new MnsQueueException(sprintf('Push job to queue with error [%s] %s',
@@ -105,7 +106,7 @@ class MnsQueue extends Queue implements ClearableQueue, QueueContract
             $this->createPayload($job, $queue, $data),
             $queue,
             $delay,
-            fn ($payload, $queue, $delay) => $this->pushRaw($payload, $queue, [
+            fn (string $payload, string $queue, \DateTimeInterface|\DateInterval|int $delay) => $this->pushRaw($payload, $queue, [
                 'DelaySeconds' => $this->secondsUntil($delay),
             ])
         );
@@ -123,7 +124,11 @@ class MnsQueue extends Queue implements ClearableQueue, QueueContract
     {
         foreach ((array) $jobs as $job) {
             if (is_object($job) && isset($job->delay)) {
-                $this->later($job->delay, $job, $data, $queue);
+                if ($job->delay instanceof \DateTimeInterface ||
+                    $job->delay instanceof \DateInterval ||
+                    is_int($job->delay)) {
+                    $this->later($job->delay, $job, $data, $queue);
+                }
             } else {
                 /** @var object|string $job */
                 $this->push($job, $data, $queue);
@@ -179,8 +184,10 @@ class MnsQueue extends Queue implements ClearableQueue, QueueContract
             /** @var \Dew\Mns\Versions\V20150606\Models\Message[] */
             $messages = $result->messages();
 
+            /** @var array<int, string> */
             $receipts = array_filter(
-                array_map(fn (Message $message) => $message->receiptHandle(), $messages)
+                array_map(fn (Message $message) => $message->receiptHandle(), $messages),
+                fn (?string $handle) => is_string($handle)
             );
 
             $deleted += $this->deleteMessages($queue, $receipts);
