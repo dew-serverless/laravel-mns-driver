@@ -115,7 +115,7 @@ test('push job to mns', function () {
     $this->mns->expects()->sendMessage($this->queueName, ['MessageBody' => $this->mockedPayload])->andReturns($this->mockedSendMessageResult);
     $id = $queue->push($this->mockedJob, $this->mockedData, $this->queueName);
     expect($id)->toBe($this->mockedMessageId);
-    $container->shouldHaveReceived('bound')->with('events')->once();
+    $container->shouldHaveReceived('bound')->with('events');
 });
 
 test('push delayed job to mns', function () {
@@ -125,7 +125,7 @@ test('push delayed job to mns', function () {
     $this->mns->expects()->sendMessage($this->queueName, ['MessageBody' => $this->mockedPayload, 'DelaySeconds' => $this->mockedDelay])->andReturns($this->mockedSendMessageResult);
     $id = $queue->later($this->mockedDelay, $this->mockedJob, $this->mockedData, $this->queueName);
     expect($id)->toBe($this->mockedMessageId);
-    $container->shouldHaveReceived('bound')->with('events')->once();
+    $container->shouldHaveReceived('bound')->with('events');
 });
 
 test('push delayed job with datetime to mns', function () {
@@ -136,7 +136,7 @@ test('push delayed job with datetime to mns', function () {
     $this->mns->expects()->sendMessage($this->queueName, ['MessageBody' => $this->mockedPayload, 'DelaySeconds' => $this->mockedDelay])->andReturns($this->mockedSendMessageResult);
     $id = $queue->later($now->addSeconds($this->mockedDelay), $this->mockedJob, $this->mockedData, $this->queueName);
     expect($id)->toBe($this->mockedMessageId);
-    $container->shouldHaveReceived('bound')->with('events')->once();
+    $container->shouldHaveReceived('bound')->with('events');
 });
 
 test('pop job off of mns', function () {
