@@ -123,7 +123,7 @@ class MnsQueue extends Queue implements ClearableQueue, QueueContract
     public function bulk($jobs, $data = '', $queue = null)
     {
         foreach ((array) $jobs as $job) {
-            if (is_object($job) && isset($job->delay)) {
+            if (is_object($job) && property_exists($job, 'delay')) {
                 if ($job->delay instanceof \DateTimeInterface ||
                     $job->delay instanceof \DateInterval ||
                     is_int($job->delay)) {

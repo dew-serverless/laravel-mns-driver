@@ -1,7 +1,0 @@
-parameters:
-	ignoreErrors:
-		-
-			message: '#^Access to an undefined property object\:\:\$delay\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/MnsQueue.php
