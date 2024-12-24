@@ -2,17 +2,18 @@
 
 namespace Dew\MnsDriver;
 
-use Dew\Mns\MnsClient;
-use Dew\Mns\Versions\V20150606\Queue;
+use Dew\Acs\MnsOpen\MnsOpenClient;
+use Dew\Acs\MnsOpen\QueueClient;
 use Illuminate\Queue\Connectors\ConnectorInterface;
 
 /**
- * @phpstan-type Config array{
- *     endpoint: string,
- *     key: string,
- *     secret: string,
- *     queue: string,
- *     http?: array<string, mixed>
+ * @phpstan-type TConfig array{
+ *   key: string,
+ *   secret: string,
+ *   region: string,
+ *   endpoint: string,
+ *   queue: string,
+ *   console_endpoint?: string
  * }
  */
 class MnsConnector implements ConnectorInterface
@@ -25,25 +26,44 @@ class MnsConnector implements ConnectorInterface
      */
     public function connect(array $config)
     {
-        /** @var Config $config */
-        $mns = new MnsClient($config['endpoint'], $config['key'], $config['secret']);
-
-        $mns->configure($this->withDefaultConfiguration($config['http'] ?? []));
-
-        return new MnsQueue(new Queue($mns), $config['queue']);
+        /** @var TConfig $config */
+        return new MnsQueue(
+            $this->makeConsoleClient($config),
+            $this->makeQueueClient($config),
+            $config['queue']
+        );
     }
 
     /**
-     * Build a configuration with default one.
+     * Make a MNS console client.
      *
-     * @param  array<string, mixed>  $config
-     * @return array<string, mixed>
+     * @param  TConfig  $config
      */
-    protected function withDefaultConfiguration(array $config = []): array
+    private function makeConsoleClient(array $config): MnsOpenClient
     {
-        // timeout: receiving messages could take up to 30 seconds.
-        return array_merge([
-            'timeout' => 60.0,
-        ], $config);
+        return new MnsOpenClient(array_filter([
+            'credentials' => [
+                'key' => $config['key'],
+                'secret' => $config['secret'],
+            ],
+            'region' => $config['region'],
+            'endpoint' => $config['console_endpoint'] ?? null,
+        ], fn (mixed $value): bool => $value !== null));
+    }
+
+    /**
+     * Make a MNS queue client.
+     *
+     * @param  TConfig  $config
+     */
+    private function makeQueueClient(array $config): QueueClient
+    {
+        return new QueueClient([
+            'credentials' => [
+                'key' => $config['key'],
+                'secret' => $config['secret'],
+            ],
+            'endpoint' => $config['endpoint'],
+        ]);
     }
 }

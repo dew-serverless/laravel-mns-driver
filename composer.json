@@ -10,10 +10,10 @@
         }
     ],
     "require": {
-        "php": "^8.0",
+        "php": "^8.2",
         "illuminate/contracts": "^10.0",
         "illuminate/queue": "^10.0",
-        "dew-serverless/mns": "^1.1"
+        "dew-serverless/acs-sdk-php": "dev-mns-queue"
     },
     "require-dev": {
         "pestphp/pest": "^2.23",
@@ -44,7 +44,8 @@
     },
     "config": {
         "allow-plugins": {
-            "pestphp/pest-plugin": true
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": false
         }
     },
     "extra": {

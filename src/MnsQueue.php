@@ -2,8 +2,9 @@
 
 namespace Dew\MnsDriver;
 
-use Dew\Mns\Versions\V20150606\Models\Message;
-use Dew\Mns\Versions\V20150606\Results\BatchReceiveMessageResult;
+use Dew\Acs\MnsOpen\Models\ReceiveMessage;
+use Dew\Acs\MnsOpen\QueueException;
+use Dew\Acs\MnsOpen\Results\BatchReceiveMessageResult;
 use Illuminate\Contracts\Queue\ClearableQueue;
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\Queue;
@@ -13,10 +14,12 @@ class MnsQueue extends Queue implements ClearableQueue, QueueContract
     /**
      * Create a new MNS queue instance.
      *
-     * @param  \Dew\Mns\Versions\V20150606\Queue  $mns
+     * @param  \Dew\Acs\MnsOpen\MnsOpenClient  $console
+     * @param  \Dew\Acs\MnsOpen\QueueClient  $client
      */
     public function __construct(
-        protected $mns,
+        protected $console,
+        protected $client,
         protected string $default
     ) {
         //
@@ -30,17 +33,20 @@ class MnsQueue extends Queue implements ClearableQueue, QueueContract
      */
     public function size($queue = null)
     {
-        $result = $this->mns->getQueueAttributes($this->getQueue($queue));
+        $result = $this->console->getQueueAttributes([
+            'QueueName' => $this->getQueue($queue),
+        ]);
 
-        if ($result->failed()) {
-            throw new MnsQueueException(sprintf('Get the size of the queue with error [%s] %s',
-                $result->errorCode(), $result->errorMessage()
-            ));
-        }
+        $active = $result->get('Data.ActiveMessages');
+        $active = is_int($active) ? $active : 0;
 
-        return (int) $result->activeMessages()
-            + (int) $result->inactiveMessages()
-            + (int) $result->delayMessages();
+        $inactive = $result->get('Data.InactiveMessages');
+        $inactive = is_int($inactive) ? $inactive : 0;
+
+        $delayed = $result->get('Data.DelayMessages');
+        $delayed = is_int($delayed) ? $delayed : 0;
+
+        return $active + $inactive + $delayed;
     }
 
     /**
@@ -74,18 +80,12 @@ class MnsQueue extends Queue implements ClearableQueue, QueueContract
      */
     public function pushRaw($payload, $queue = null, array $options = [])
     {
-        /** @var array<string, mixed> */
-        $opts = ['MessageBody' => $payload, ...$options];
+        $result = $this->client->sendMessage([
+            'QueueName' => $this->getQueue($queue),
+            'Message' => ['MessageBody' => $payload, ...$options],
+        ]);
 
-        $result = $this->mns->sendMessage($this->getQueue($queue), $opts);
-
-        if ($result->failed()) {
-            throw new MnsQueueException(sprintf('Push job to queue with error [%s] %s',
-                $result->errorCode(), $result->errorMessage()
-            ));
-        }
-
-        return $result->messageId();
+        return $result->message()->messageId;
     }
 
     /**
@@ -144,20 +144,20 @@ class MnsQueue extends Queue implements ClearableQueue, QueueContract
      */
     public function pop($queue = null)
     {
-        $result = $this->mns->receiveMessage($queue = $this->getQueue($queue));
+        try {
+            $result = $this->client->receiveMessage([
+                'QueueName' => $queue = $this->getQueue($queue),
+            ]);
+        } catch (QueueException $e) {
+            if ($e->getCode() === 'MessageNotExist') {
+                return null;
+            }
 
-        if ($result->failed() && $result->errorCode() === 'MessageNotExist') {
-            return null;
-        }
-
-        if ($result->failed()) {
-            throw new MnsQueueException(sprintf('Pop job off of queue with error [%s] %s',
-                $result->errorCode(), $result->errorMessage()
-            ));
+            throw $e;
         }
 
         return new MnsJob(
-            $this->container, $this->mns, $result,
+            $this->container, $this->client, $result->message(),
             $this->connectionName, $queue
         );
     }
@@ -181,13 +181,9 @@ class MnsQueue extends Queue implements ClearableQueue, QueueContract
                 break;
             }
 
-            /** @var \Dew\Mns\Versions\V20150606\Models\Message[] */
-            $messages = $result->messages();
-
-            /** @var array<int, string> */
-            $receipts = array_filter(
-                array_map(fn (Message $message) => $message->receiptHandle(), $messages),
-                fn (?string $handle) => is_string($handle)
+            $receipts = array_map(
+                fn (ReceiveMessage $message) => $message->receiptHandle,
+                $result->messages()
             );
 
             $deleted += $this->deleteMessages($queue, $receipts);
@@ -201,46 +197,67 @@ class MnsQueue extends Queue implements ClearableQueue, QueueContract
      */
     protected function retrieveMessages(string $queue): BatchReceiveMessageResult|bool
     {
-        $result = $this->mns->batchReceiveMessage($queue, [
-            'numOfMessages' => '16',  // max messages we could get at a time
-            'waitseconds' => '30',    // max timeout
-        ]);
+        try {
+            return $this->client->batchReceiveMessage([
+                'QueueName' => $queue,
+                'numOfMessages' => 16,  // max messages we could get at a time
+                'waitseconds' => 30,    // max timeout
+            ]);
+        } catch (QueueException $e) {
+            if ($e->getCode() === 'MessageNotExist') {
+                return false;
+            }
 
-        if ($result->failed() && $result->errorCode() === 'MessageNotExist') {
-            return false;
+            throw $e;
         }
-
-        if ($result->failed()) {
-            throw new MnsQueueException(sprintf('Retrieve the messages with error [%s] %s',
-                $result->errorCode(), $result->errorMessage()
-            ));
-        }
-
-        return $result;
     }
 
     /**
      * Delete the messages from queue.
      *
-     * @param  array<int, string>  $receipts
+     * @param  string[]  $handles
      */
-    protected function deleteMessages(string $queue, array $receipts): int
+    protected function deleteMessages(string $queue, array $handles): int
     {
-        $result = $this->mns->batchDeleteMessage($queue, $receipts);
+        try {
+            $this->client->batchDeleteMessage([
+                'QueueName' => $queue,
+                'ReceiptHandles' => [
+                    'ReceiptHandle' => $handles,
+                ],
+            ]);
 
-        if ($result->failed()) {
-            throw new MnsQueueException(sprintf('Delete the messages with error [%s] %s',
-                $result->errorCode(), $result->errorMessage()
-            ));
+            return count($handles);
+        } catch (QueueException $e) {
+            $errors = $e->getResult()?->list('Errors.Error');
+
+            if ($errors === null || $errors === []) {
+                throw $e;
+            }
+
+            $failed = 0;
+
+            foreach ($errors as $error) {
+                if (! is_array($error)) {
+                    throw $e;
+                }
+
+                $code = $error['ErrorCode'] ?? null;
+                $message = $error['ErrorMessage'] ?? null;
+
+                if (! is_string($code) || ! is_string($message)) {
+                    throw $e;
+                }
+
+                if ($code !== 'MessageNotExist') {
+                    throw new MnsQueueException($message, previous: $e);
+                }
+
+                $failed++;
+            }
+
+            return count($handles) - $failed;
         }
-
-        $errors = $result->errors();
-
-        if (is_array($errors) && $errors !== []) {
-            return count($receipts) - count($errors);
-        }
-
-        return count($receipts);
     }
 
     /**
@@ -258,10 +275,10 @@ class MnsQueue extends Queue implements ClearableQueue, QueueContract
     /**
      * The underlying MNS queue.
      *
-     * @return \Dew\Mns\Versions\V20150606\Queue
+     * @return \Dew\Acs\MnsOpen\QueueClient
      */
     public function getMns()
     {
-        return $this->mns;
+        return $this->client;
     }
 }

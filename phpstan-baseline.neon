@@ -1,0 +1,7 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Parameter \#1 \$arguments of method Dew\\Acs\\MnsOpen\\QueueClient\:\:sendMessage\(\) expects array\{QueueName\: string, Message\: array\{MessageBody\: string, DelaySeconds\?\: int\}\}, array\{QueueName\: string, Message\: non\-empty\-array\<mixed\>\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/MnsQueue.php
