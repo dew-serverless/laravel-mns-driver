@@ -10,7 +10,7 @@
         }
     ],
     "require": {
-        "php": "^8.0",
+        "php": "^8.2",
         "illuminate/contracts": "^10.0",
         "illuminate/queue": "^10.0",
         "dew-serverless/acs-sdk-php": "dev-mns-queue"
